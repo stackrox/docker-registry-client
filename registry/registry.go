@@ -41,7 +41,7 @@ type Registry struct {
 func New(registryUrl, username, password string) (*Registry, error) {
 	transport := http.DefaultTransport
 
-	return newFromTransport(registryUrl, username, password, transport, Log)
+	return newWithWrapTransport(registryUrl, username, password, transport, Log)
 }
 
 /*
@@ -55,7 +55,7 @@ func NewInsecure(registryUrl, username, password string) (*Registry, error) {
 		},
 	}
 
-	return newFromTransport(registryUrl, username, password, transport, Log)
+	return newWithWrapTransport(registryUrl, username, password, transport, Log)
 }
 
 /*
@@ -82,11 +82,15 @@ func WrapTransport(transport http.RoundTripper, url, username, password string) 
 	return errorTransport
 }
 
-func newFromTransport(registryUrl, username, password string, transport http.RoundTripper, logf LogfCallback) (*Registry, error) {
+func newWithWrapTransport(registryUrl, username, password string, transport http.RoundTripper, logf LogfCallback) (*Registry, error) {
 	url := strings.TrimSuffix(registryUrl, "/")
 	transport = WrapTransport(transport, url, username, password)
+	return NewFromTransport(registryUrl, username, password, transport, logf)
+}
+
+func NewFromTransport(registryUrl, username, password string, transport http.RoundTripper, logf LogfCallback) (*Registry, error) {
 	registry := &Registry{
-		URL: url,
+		URL: registryUrl,
 		Client: &http.Client{
 			Transport: transport,
 		},
