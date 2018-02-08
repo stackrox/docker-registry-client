@@ -9,6 +9,7 @@ import (
 
 type TokenTransport struct {
 	Transport http.RoundTripper
+	Token     string
 	Username  string
 	Password  string
 }
@@ -64,7 +65,7 @@ func (t *TokenTransport) auth(authService *authService) (string, *http.Response,
 	if err != nil {
 		return "", nil, err
 	}
-
+	t.Token = authToken.Token
 	return authToken.Token, nil, nil
 }
 
@@ -72,6 +73,11 @@ func (t *TokenTransport) retry(req *http.Request, token string) (*http.Response,
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	resp, err := t.Transport.RoundTrip(req)
 	return resp, err
+}
+
+// GetToken returns the current token used to access the registry
+func (t *TokenTransport) GetToken() string {
+	return t.Token
 }
 
 type authService struct {

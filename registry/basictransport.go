@@ -6,10 +6,10 @@ import (
 )
 
 type BasicTransport struct {
-	Transport http.RoundTripper
-	URL       string
-	Username  string
-	Password  string
+	Transport
+	URL      string
+	Username string
+	Password string
 }
 
 func (t *BasicTransport) RoundTrip(req *http.Request) (*http.Response, error) {

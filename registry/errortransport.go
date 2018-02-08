@@ -18,7 +18,7 @@ func (err *HttpStatusError) Error() string {
 var _ error = &HttpStatusError{}
 
 type ErrorTransport struct {
-	Transport http.RoundTripper
+	Transport
 }
 
 func (t *ErrorTransport) RoundTrip(request *http.Request) (*http.Response, error) {

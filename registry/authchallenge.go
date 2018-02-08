@@ -57,7 +57,7 @@ func init() {
 func parseAuthHeader(header http.Header) []*AuthorizationChallenge {
 	var challenges []*AuthorizationChallenge
 	for _, h := range header[http.CanonicalHeaderKey("WWW-Authenticate")] {
-		v, p := parseValueAndParams(h)
+		v, p := ParseValueAndParams(h)
 		if v != "" {
 			challenges = append(challenges, &AuthorizationChallenge{Scheme: v, Parameters: p})
 		}
@@ -65,7 +65,8 @@ func parseAuthHeader(header http.Header) []*AuthorizationChallenge {
 	return challenges
 }
 
-func parseValueAndParams(header string) (value string, params map[string]string) {
+// ParseValueAndParams takes in a header string and parses the token out of it
+func ParseValueAndParams(header string) (value string, params map[string]string) {
 	params = make(map[string]string)
 	value, s := expectToken(header)
 	if value == "" {

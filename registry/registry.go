@@ -24,10 +24,17 @@ func Log(format string, args ...interface{}) {
 	log.Printf(format, args...)
 }
 
+// Transport is the interface that all transports must implement so that a token can be retrieved from the registry
+type Transport interface {
+	http.RoundTripper
+	GetToken() string
+}
+
 type Registry struct {
-	URL    string
-	Client *http.Client
-	Logf   LogfCallback
+	URL       string
+	Client    *http.Client
+	Transport Transport
+	Logf      LogfCallback
 }
 
 /*
@@ -64,7 +71,7 @@ func NewInsecure(registryUrl, username, password string) (*Registry, error) {
  * adds in support for OAuth bearer tokens and HTTP Basic auth, and sets up
  * error handling this library relies on.
  */
-func WrapTransport(transport http.RoundTripper, url, username, password string) http.RoundTripper {
+func WrapTransport(transport http.RoundTripper, url, username, password string) Transport {
 	tokenTransport := &TokenTransport{
 		Transport: transport,
 		Username:  username,
@@ -84,17 +91,18 @@ func WrapTransport(transport http.RoundTripper, url, username, password string) 
 
 func newWithWrapTransport(registryUrl, username, password string, transport http.RoundTripper, logf LogfCallback) (*Registry, error) {
 	url := strings.TrimSuffix(registryUrl, "/")
-	transport = WrapTransport(transport, url, username, password)
-	return NewFromTransport(registryUrl, username, password, transport, logf)
+	wrappedTransport := WrapTransport(transport, url, username, password)
+	return NewFromTransport(registryUrl, wrappedTransport, logf)
 }
 
-func NewFromTransport(registryUrl, username, password string, transport http.RoundTripper, logf LogfCallback) (*Registry, error) {
+func NewFromTransport(registryUrl string, transport Transport, logf LogfCallback) (*Registry, error) {
 	registry := &Registry{
 		URL: registryUrl,
 		Client: &http.Client{
 			Transport: transport,
 		},
-		Logf: logf,
+		Transport: transport,
+		Logf:      logf,
 	}
 
 	if err := registry.Ping(); err != nil {
