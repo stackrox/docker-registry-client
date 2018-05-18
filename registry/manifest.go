@@ -11,6 +11,14 @@ import (
 )
 
 func (registry *Registry) Manifest(repository, reference string) (*manifestV1.SignedManifest, error) {
+	return registry.v1Manifest(repository, reference, manifestV1.MediaTypeManifest)
+}
+
+func (registry *Registry) SignedManifest(repository, reference string) (*manifestV1.SignedManifest, error) {
+	return registry.v1Manifest(repository, reference, manifestV1.MediaTypeSignedManifest)
+}
+
+func (registry *Registry) v1Manifest(repository, reference string, mediaType string) (*manifestV1.SignedManifest, error) {
 	url := registry.url("/v2/%s/manifests/%s", repository, reference)
 	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
 
@@ -19,7 +27,7 @@ func (registry *Registry) Manifest(repository, reference string) (*manifestV1.Si
 		return nil, err
 	}
 
-	req.Header.Set("Accept", manifestV1.MediaTypeManifest)
+	req.Header.Set("Accept", mediaType)
 	resp, err := registry.Client.Do(req)
 	if err != nil {
 		return nil, err
