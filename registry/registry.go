@@ -105,10 +105,6 @@ func NewFromTransport(registryUrl string, transport Transport, logf LogfCallback
 		Logf:      logf,
 	}
 
-	if err := registry.Ping(); err != nil {
-		return nil, err
-	}
-
 	return registry, nil
 }
 
