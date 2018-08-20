@@ -139,9 +139,5 @@ func (r *Registry) Ping() error {
 		return errors.New(errorBuilder.String())
 	}
 
-	if readErr != nil {
-		return readErr
-	}
-
-	return nil
+	return readErr
 }
