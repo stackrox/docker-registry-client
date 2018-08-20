@@ -2,7 +2,9 @@ package registry
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -118,11 +120,24 @@ func (r *Registry) Ping() error {
 	url := r.url("/v2/")
 	r.Logf("registry.ping url=%s", url)
 	resp, err := r.Client.Get(url)
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
-
+		return err
 	}
-	return err
+	defer resp.Body.Close()
+
+	// We read the results a little early so that, if the body exists,
+	// we can print it out in the response for easier debuggability.
+	results, readErr := ioutil.ReadAll(resp.Body)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		errorBuilder := strings.Builder{}
+		errorBuilder.WriteString(fmt.Sprintf("got error status code %d pinging %s: %s",
+			resp.StatusCode, url, resp.Status))
+		if readErr != nil {
+			errorBuilder.WriteString(fmt.Sprintf(" (body: %s)", results))
+		}
+		return errors.New(errorBuilder.String())
+	}
+
+	return readErr
 }
