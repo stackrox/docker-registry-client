@@ -134,6 +134,11 @@ func (registry *Registry) ManifestDigest(repository, reference string) (digest.D
 		return "", "", err
 	}
 
+	req.Header.Add("Accept", manifestV2.MediaTypeManifest)
+	req.Header.Add("Accept", manifestV1.MediaTypeManifest)
+	req.Header.Add("Accept", manifestV1.MediaTypeSignedManifest)
+	req.Header.Add("Accept", MediaTypeManifestList)
+
 	resp, err := registry.Client.Do(req)
 	if resp != nil {
 		defer resp.Body.Close()
