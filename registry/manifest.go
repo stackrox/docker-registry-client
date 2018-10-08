@@ -2,6 +2,7 @@ package registry
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
@@ -10,12 +11,59 @@ import (
 	digest "github.com/opencontainers/go-digest"
 )
 
+const (
+	MediaTypeManifestList = "application/vnd.docker.distribution.manifest.list.v2+json"
+)
+
+type Platform struct {
+	Architecture string `json:"architecture"`
+	OS           string `json:"os"`
+}
+
+type Manifest struct {
+	MediaType string   `json:"mediaType"`
+	Digest    string   `json:"digest"`
+	Platform  Platform `json:"platform"`
+}
+
+type ManifestList struct {
+	Manifests []Manifest `json:"manifests"`
+}
+
 func (registry *Registry) Manifest(repository, reference string) (*manifestV1.SignedManifest, error) {
 	return registry.v1Manifest(repository, reference, manifestV1.MediaTypeManifest)
 }
 
 func (registry *Registry) SignedManifest(repository, reference string) (*manifestV1.SignedManifest, error) {
 	return registry.v1Manifest(repository, reference, manifestV1.MediaTypeSignedManifest)
+}
+
+func (registry *Registry) ManifestList(repository, reference string) (*ManifestList, error) {
+	url := registry.url("/v2/%s/manifests/%s", repository, reference)
+	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Accept", MediaTypeManifestList)
+	resp, err := registry.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	manifestList := &ManifestList{}
+	if err := json.Unmarshal(body, &manifestList); err != nil {
+		return nil, err
+	}
+	return manifestList, nil
 }
 
 func (registry *Registry) v1Manifest(repository, reference string, mediaType string) (*manifestV1.SignedManifest, error) {
@@ -77,36 +125,26 @@ func (registry *Registry) ManifestV2(repository, reference string) (*manifestV2.
 	return deserialized, nil
 }
 
-func (registry *Registry) fetchManifest(repository, reference, manifestType string) (digest.Digest, error) {
+func (registry *Registry) ManifestDigest(repository, reference string) (digest.Digest, string, error) {
 	url := registry.url("/v2/%s/manifests/%s", repository, reference)
-	registry.Logf("registry.manifest.head mime=%s url=%s repository=%s reference=%s", manifestType, url, repository, reference)
+	registry.Logf("registry.manifest.head url=%s repository=%s reference=%s", url, repository, reference)
 
 	req, err := http.NewRequest("HEAD", url, nil)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	req.Header.Set("Accept", manifestType)
 
 	resp, err := registry.Client.Do(req)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		return "", err
-	}
-	return digest.Parse(resp.Header.Get("Docker-Content-Digest"))
-}
-
-func (registry *Registry) ManifestDigest(repository, reference string) (digest.Digest, error) {
-	if digest, err := registry.fetchManifest(repository, reference, manifestV2.MediaTypeManifest); err == nil {
-		return digest, nil
+		return "", "", err
 	}
 
-	if digest, err := registry.fetchManifest(repository, reference, manifestV1.MediaTypeSignedManifest); err == nil {
-		return digest, nil
-	}
-
-	return registry.fetchManifest(repository, reference, manifestV1.MediaTypeManifest)
+	contentType := resp.Header.Get("Content-Type")
+	d, err := digest.Parse(resp.Header.Get("Docker-Content-Digest"))
+	return d, contentType, err
 }
 
 func (registry *Registry) DeleteManifest(repository string, digest digest.Digest) error {
