@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sync"
 )
 
 type TokenTransport struct {
 	Transport http.RoundTripper
-	Token     string
 	Username  string
 	Password  string
+
+	token      string
+	tokenMutex sync.RWMutex
 }
 
 func (t *TokenTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -73,8 +76,11 @@ func (t *TokenTransport) auth(authService *authService) (string, *http.Response,
 	if err != nil {
 		return "", nil, err
 	}
-	t.Token = authToken.getToken()
-	return t.Token, nil, nil
+
+	t.tokenMutex.Lock()
+	defer t.tokenMutex.Unlock()
+	t.token = authToken.getToken()
+	return t.token, nil, nil
 }
 
 func (t *TokenTransport) retry(req *http.Request, token string) (*http.Response, error) {
@@ -85,7 +91,10 @@ func (t *TokenTransport) retry(req *http.Request, token string) (*http.Response,
 
 // GetToken returns the current token used to access the registry
 func (t *TokenTransport) GetToken() string {
-	return t.Token
+	t.tokenMutex.RLock()
+	defer t.tokenMutex.RUnlock()
+
+	return t.token
 }
 
 type authService struct {
