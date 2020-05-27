@@ -27,7 +27,15 @@ type Manifest struct {
 }
 
 type ManifestList struct {
+	canonical []byte
 	Manifests []Manifest `json:"manifests"`
+}
+
+func (m *ManifestList) Canonical() []byte {
+	if m == nil {
+		return nil
+	}
+	return m.canonical
 }
 
 func (registry *Registry) Manifest(repository, reference string) (*manifestV1.SignedManifest, error) {
@@ -59,7 +67,9 @@ func (registry *Registry) ManifestList(repository, reference string) (*ManifestL
 		return nil, err
 	}
 
-	manifestList := &ManifestList{}
+	manifestList := &ManifestList{
+		canonical: body,
+	}
 	if err := json.Unmarshal(body, &manifestList); err != nil {
 		return nil, err
 	}
