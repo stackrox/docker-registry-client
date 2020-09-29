@@ -121,7 +121,7 @@ func (r *Registry) Ping() error {
 	r.Logf("registry.ping url=%s", url)
 	resp, err := r.Client.Get(url)
 	if err != nil {
-		return NewClientError(resp.StatusCode, err)
+		return err
 	}
 	defer resp.Body.Close()
 
@@ -139,5 +139,5 @@ func (r *Registry) Ping() error {
 		return NewClientError(resp.StatusCode, errors.New(errorBuilder.String()))
 	}
 
-	return NewClientError(resp.StatusCode, readErr)
+	return readErr
 }

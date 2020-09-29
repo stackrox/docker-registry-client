@@ -14,7 +14,7 @@ var (
 func (registry *Registry) getJson(url string, response interface{}) error {
 	resp, err := registry.Client.Get(url)
 	if err != nil {
-		return NewClientError(resp.StatusCode, err)
+		return err
 	}
 	defer resp.Body.Close()
 
@@ -33,7 +33,7 @@ func (registry *Registry) getJson(url string, response interface{}) error {
 func (registry *Registry) getPaginatedJson(url string, response interface{}) (string, error) {
 	resp, err := registry.Client.Get(url)
 	if err != nil {
-		return "", NewClientError(resp.StatusCode, err)
+		return "", err
 	}
 	defer resp.Body.Close()
 

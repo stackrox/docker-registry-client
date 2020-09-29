@@ -2,17 +2,6 @@ package registry
 
 import "fmt"
 
-type Error interface {
-	// Satisfy the generic error interface.
-	error
-
-	// Returns the HTTP error code the error.
-	Code() int
-
-	// Returns the original error if one was set.  Nil is returned if not set.
-	OrigErr() error
-}
-
 type ClientError struct {
 	code int
 	err  error
