@@ -13,6 +13,7 @@ import (
 
 const (
 	MediaTypeManifestList = "application/vnd.docker.distribution.manifest.list.v2+json"
+	OCIMediaTypeManifest = "application/vnd.oci.image.manifest.v1+json"
 )
 
 type Platform struct {
@@ -116,6 +117,7 @@ func (registry *Registry) ManifestV2(repository, reference string) (*manifestV2.
 	}
 
 	req.Header.Set("Accept", manifestV2.MediaTypeManifest)
+	req.Header.Set("Accept", OCIMediaTypeManifest)
 	resp, err := registry.Client.Do(req)
 	if err != nil {
 		return nil, err
