@@ -150,6 +150,7 @@ func (registry *Registry) ManifestDigest(repository, reference string) (digest.D
 	req.Header.Add("Accept", manifestV1.MediaTypeManifest)
 	req.Header.Add("Accept", manifestV1.MediaTypeSignedManifest)
 	req.Header.Add("Accept", MediaTypeManifestList)
+	req.Header.Add("Accept", OCIMediaTypeManifest)
 
 	resp, err := registry.Client.Do(req)
 	if resp != nil {
