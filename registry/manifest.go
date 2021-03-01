@@ -10,7 +10,7 @@ import (
 	manifestV1 "github.com/docker/distribution/manifest/schema1"
 	manifestV2 "github.com/docker/distribution/manifest/schema2"
 	digest "github.com/opencontainers/go-digest"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	ociSpec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const (
@@ -146,7 +146,7 @@ func (registry *Registry) ManifestOCI(repository, reference string) (*ocischema.
 		return nil, err
 	}
 
-	req.Header.Set("Accept", v1.MediaTypeImageManifest)
+	req.Header.Set("Accept", ociSpec.MediaTypeImageManifest)
 	resp, err := registry.Client.Do(req)
 	if err != nil {
 		return nil, err
@@ -180,7 +180,7 @@ func (registry *Registry) ManifestDigest(repository, reference string) (digest.D
 	req.Header.Add("Accept", manifestV1.MediaTypeManifest)
 	req.Header.Add("Accept", manifestV1.MediaTypeSignedManifest)
 	req.Header.Add("Accept", MediaTypeManifestList)
-	req.Header.Add("Accept", v1.MediaTypeImageManifest)
+	req.Header.Add("Accept", ociSpec.MediaTypeImageManifest)
 
 	resp, err := registry.Client.Do(req)
 	if resp != nil {
