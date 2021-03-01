@@ -6,14 +6,15 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/docker/distribution/manifest/ocischema"
 	manifestV1 "github.com/docker/distribution/manifest/schema1"
 	manifestV2 "github.com/docker/distribution/manifest/schema2"
 	digest "github.com/opencontainers/go-digest"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const (
 	MediaTypeManifestList = "application/vnd.docker.distribution.manifest.list.v2+json"
-	OCIMediaTypeManifest = "application/vnd.oci.image.manifest.v1+json"
 )
 
 type Platform struct {
@@ -117,7 +118,6 @@ func (registry *Registry) ManifestV2(repository, reference string) (*manifestV2.
 	}
 
 	req.Header.Set("Accept", manifestV2.MediaTypeManifest)
-	req.Header.Set("Accept", OCIMediaTypeManifest)
 	resp, err := registry.Client.Do(req)
 	if err != nil {
 		return nil, err
@@ -137,6 +137,36 @@ func (registry *Registry) ManifestV2(repository, reference string) (*manifestV2.
 	return deserialized, nil
 }
 
+func (registry *Registry) ManifestOCI(repository, reference string) (*ocischema.DeserializedManifest, error) {
+	url := registry.url("/v2/%s/manifests/%s", repository, reference)
+	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Accept", v1.MediaTypeImageManifest)
+	resp, err := registry.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	deserialized := &ocischema.DeserializedManifest{}
+	err = deserialized.UnmarshalJSON(body)
+	if err != nil {
+		return nil, err
+	}
+	return deserialized, nil
+}
+
+
 func (registry *Registry) ManifestDigest(repository, reference string) (digest.Digest, string, error) {
 	url := registry.url("/v2/%s/manifests/%s", repository, reference)
 	registry.Logf("registry.manifest.head url=%s repository=%s reference=%s", url, repository, reference)
@@ -150,7 +180,7 @@ func (registry *Registry) ManifestDigest(repository, reference string) (digest.D
 	req.Header.Add("Accept", manifestV1.MediaTypeManifest)
 	req.Header.Add("Accept", manifestV1.MediaTypeSignedManifest)
 	req.Header.Add("Accept", MediaTypeManifestList)
-	req.Header.Add("Accept", OCIMediaTypeManifest)
+	req.Header.Add("Accept", v1.MediaTypeImageManifest)
 
 	resp, err := registry.Client.Do(req)
 	if resp != nil {
