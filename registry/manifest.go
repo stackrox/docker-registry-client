@@ -3,13 +3,13 @@ package registry
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/docker/distribution/manifest/ocischema"
 	manifestV1 "github.com/docker/distribution/manifest/schema1"
 	manifestV2 "github.com/docker/distribution/manifest/schema2"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 	ociSpec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -64,7 +64,7 @@ func (registry *Registry) ManifestList(repository, reference string) (*ManifestL
 	}
 
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (registry *Registry) v1Manifest(repository, reference string, mediaType str
 	}
 
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func (registry *Registry) ManifestV2(repository, reference string) (*manifestV2.
 	}
 
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (registry *Registry) ManifestOCI(repository, reference string) (*ocischema.
 	}
 
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +165,6 @@ func (registry *Registry) ManifestOCI(repository, reference string) (*ocischema.
 	}
 	return deserialized, nil
 }
-
 
 func (registry *Registry) ManifestDigest(repository, reference string) (digest.Digest, string, error) {
 	url := registry.url("/v2/%s/manifests/%s", repository, reference)
@@ -181,6 +180,7 @@ func (registry *Registry) ManifestDigest(repository, reference string) (digest.D
 	req.Header.Add("Accept", manifestV1.MediaTypeSignedManifest)
 	req.Header.Add("Accept", MediaTypeManifestList)
 	req.Header.Add("Accept", ociSpec.MediaTypeImageManifest)
+	req.Header.Add("Accept", ociSpec.MediaTypeImageIndex)
 
 	resp, err := registry.Client.Do(req)
 	if resp != nil {
