@@ -6,39 +6,12 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/docker/distribution/manifest/ocischema"
+	"github.com/docker/distribution/manifest/manifestlist"
 	manifestV1 "github.com/docker/distribution/manifest/schema1"
 	manifestV2 "github.com/docker/distribution/manifest/schema2"
 	"github.com/opencontainers/go-digest"
-	ociSpec "github.com/opencontainers/image-spec/specs-go/v1"
+	ociV1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
-
-const (
-	MediaTypeManifestList = "application/vnd.docker.distribution.manifest.list.v2+json"
-)
-
-type Platform struct {
-	Architecture string `json:"architecture"`
-	OS           string `json:"os"`
-}
-
-type Manifest struct {
-	MediaType string   `json:"mediaType"`
-	Digest    string   `json:"digest"`
-	Platform  Platform `json:"platform"`
-}
-
-type ManifestList struct {
-	canonical []byte
-	Manifests []Manifest `json:"manifests"`
-}
-
-func (m *ManifestList) Canonical() []byte {
-	if m == nil {
-		return nil
-	}
-	return m.canonical
-}
 
 func (registry *Registry) Manifest(repository, reference string) (*manifestV1.SignedManifest, error) {
 	return registry.v1Manifest(repository, reference, manifestV1.MediaTypeManifest)
@@ -46,36 +19,6 @@ func (registry *Registry) Manifest(repository, reference string) (*manifestV1.Si
 
 func (registry *Registry) SignedManifest(repository, reference string) (*manifestV1.SignedManifest, error) {
 	return registry.v1Manifest(repository, reference, manifestV1.MediaTypeSignedManifest)
-}
-
-func (registry *Registry) ManifestList(repository, reference string) (*ManifestList, error) {
-	url := registry.url("/v2/%s/manifests/%s", repository, reference)
-	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Accept", MediaTypeManifestList)
-	resp, err := registry.Client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	manifestList := &ManifestList{
-		canonical: body,
-	}
-	if err := json.Unmarshal(body, &manifestList); err != nil {
-		return nil, err
-	}
-	return manifestList, nil
 }
 
 func (registry *Registry) v1Manifest(repository, reference string, mediaType string) (*manifestV1.SignedManifest, error) {
@@ -108,6 +51,35 @@ func (registry *Registry) v1Manifest(repository, reference string, mediaType str
 	return signedManifest, nil
 }
 
+func (registry *Registry) ManifestList(repository, reference string) (*manifestlist.DeserializedManifestList, error) {
+	url := registry.url("/v2/%s/manifests/%s", repository, reference)
+	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Accept", manifestlist.MediaTypeManifestList)
+	resp, err := registry.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	deserialized := &manifestlist.DeserializedManifestList{}
+	err = deserialized.UnmarshalJSON(body)
+	if err != nil {
+		return nil, err
+	}
+	return deserialized, nil
+}
+
 func (registry *Registry) ManifestV2(repository, reference string) (*manifestV2.DeserializedManifest, error) {
 	url := registry.url("/v2/%s/manifests/%s", repository, reference)
 	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
@@ -137,7 +109,7 @@ func (registry *Registry) ManifestV2(repository, reference string) (*manifestV2.
 	return deserialized, nil
 }
 
-func (registry *Registry) ManifestOCI(repository, reference string) (*ocischema.DeserializedManifest, error) {
+func (registry *Registry) ManifestOCI(repository, reference string) (*ociV1.Manifest, error) {
 	url := registry.url("/v2/%s/manifests/%s", repository, reference)
 	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
 
@@ -146,7 +118,7 @@ func (registry *Registry) ManifestOCI(repository, reference string) (*ocischema.
 		return nil, err
 	}
 
-	req.Header.Set("Accept", ociSpec.MediaTypeImageManifest)
+	req.Header.Set("Accept", ociV1.MediaTypeImageManifest)
 	resp, err := registry.Client.Do(req)
 	if err != nil {
 		return nil, err
@@ -158,12 +130,41 @@ func (registry *Registry) ManifestOCI(repository, reference string) (*ocischema.
 		return nil, err
 	}
 
-	deserialized := &ocischema.DeserializedManifest{}
-	err = deserialized.UnmarshalJSON(body)
+	manifest := &ociV1.Manifest{}
+	err = json.Unmarshal(body, manifest)
 	if err != nil {
 		return nil, err
 	}
-	return deserialized, nil
+	return manifest, nil
+}
+
+func (registry *Registry) ImageIndex(repository, reference string) (*ociV1.Index, error) {
+	url := registry.url("/v2/%s/manifests/%s", repository, reference)
+	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Accept", ociV1.MediaTypeImageIndex)
+	resp, err := registry.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	index := &ociV1.Index{}
+	err = json.Unmarshal(body, index)
+	if err != nil {
+		return nil, err
+	}
+	return index, nil
 }
 
 func (registry *Registry) ManifestDigest(repository, reference string) (digest.Digest, string, error) {
@@ -178,8 +179,9 @@ func (registry *Registry) ManifestDigest(repository, reference string) (digest.D
 	req.Header.Add("Accept", manifestV2.MediaTypeManifest)
 	req.Header.Add("Accept", manifestV1.MediaTypeManifest)
 	req.Header.Add("Accept", manifestV1.MediaTypeSignedManifest)
-	req.Header.Add("Accept", MediaTypeManifestList)
-	req.Header.Add("Accept", ociSpec.MediaTypeImageManifest)
+	req.Header.Add("Accept", manifestlist.MediaTypeManifestList)
+	req.Header.Add("Accept", ociV1.MediaTypeImageManifest)
+	req.Header.Add("Accept", ociV1.MediaTypeImageIndex)
 
 	resp, err := registry.Client.Do(req)
 	if resp != nil {
