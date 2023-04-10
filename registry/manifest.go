@@ -2,15 +2,24 @@ package registry
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 
 	"github.com/docker/distribution/manifest/manifestlist"
+	ociV1 "github.com/docker/distribution/manifest/ocischema"
 	manifestV1 "github.com/docker/distribution/manifest/schema1"
 	manifestV2 "github.com/docker/distribution/manifest/schema2"
 	"github.com/opencontainers/go-digest"
-	ociV1 "github.com/opencontainers/image-spec/specs-go/v1"
+)
+
+// Opt to define these constants here instead of importing
+// github.com/opencontainers/image-spec/specs-go/v1
+// to ensure we use the docker/distribution library for unmarshalling purposes.
+const (
+	// MediaTypeImageManifest specifies the media type for an image manifest.
+	MediaTypeImageManifest = "application/vnd.oci.image.manifest.v1+json"
+	// MediaTypeImageIndex specifies the media type for an image index.
+	MediaTypeImageIndex = "application/vnd.oci.image.index.v1+json"
 )
 
 func (registry *Registry) Manifest(repository, reference string) (*manifestV1.SignedManifest, error) {
@@ -109,7 +118,7 @@ func (registry *Registry) ManifestV2(repository, reference string) (*manifestV2.
 	return deserialized, nil
 }
 
-func (registry *Registry) ManifestOCI(repository, reference string) (*ociV1.Manifest, error) {
+func (registry *Registry) ImageIndex(repository, reference string) (*manifestlist.DeserializedManifestList, error) {
 	url := registry.url("/v2/%s/manifests/%s", repository, reference)
 	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
 
@@ -118,7 +127,7 @@ func (registry *Registry) ManifestOCI(repository, reference string) (*ociV1.Mani
 		return nil, err
 	}
 
-	req.Header.Set("Accept", ociV1.MediaTypeImageManifest)
+	req.Header.Set("Accept", MediaTypeImageIndex)
 	resp, err := registry.Client.Do(req)
 	if err != nil {
 		return nil, err
@@ -130,15 +139,15 @@ func (registry *Registry) ManifestOCI(repository, reference string) (*ociV1.Mani
 		return nil, err
 	}
 
-	manifest := &ociV1.Manifest{}
-	err = json.Unmarshal(body, manifest)
+	deserialized := &manifestlist.DeserializedManifestList{}
+	err = deserialized.UnmarshalJSON(body)
 	if err != nil {
 		return nil, err
 	}
-	return manifest, nil
+	return deserialized, nil
 }
 
-func (registry *Registry) ImageIndex(repository, reference string) (*ociV1.Index, error) {
+func (registry *Registry) ManifestOCI(repository, reference string) (*ociV1.DeserializedManifest, error) {
 	url := registry.url("/v2/%s/manifests/%s", repository, reference)
 	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
 
@@ -147,7 +156,7 @@ func (registry *Registry) ImageIndex(repository, reference string) (*ociV1.Index
 		return nil, err
 	}
 
-	req.Header.Set("Accept", ociV1.MediaTypeImageIndex)
+	req.Header.Set("Accept", MediaTypeImageManifest)
 	resp, err := registry.Client.Do(req)
 	if err != nil {
 		return nil, err
@@ -159,12 +168,12 @@ func (registry *Registry) ImageIndex(repository, reference string) (*ociV1.Index
 		return nil, err
 	}
 
-	index := &ociV1.Index{}
-	err = json.Unmarshal(body, index)
+	deserialized := &ociV1.DeserializedManifest{}
+	err = deserialized.UnmarshalJSON(body)
 	if err != nil {
 		return nil, err
 	}
-	return index, nil
+	return deserialized, nil
 }
 
 func (registry *Registry) ManifestDigest(repository, reference string) (digest.Digest, string, error) {
@@ -180,8 +189,8 @@ func (registry *Registry) ManifestDigest(repository, reference string) (digest.D
 	req.Header.Add("Accept", manifestV1.MediaTypeManifest)
 	req.Header.Add("Accept", manifestV1.MediaTypeSignedManifest)
 	req.Header.Add("Accept", manifestlist.MediaTypeManifestList)
-	req.Header.Add("Accept", ociV1.MediaTypeImageManifest)
-	req.Header.Add("Accept", ociV1.MediaTypeImageIndex)
+	req.Header.Add("Accept", MediaTypeImageManifest)
+	req.Header.Add("Accept", MediaTypeImageIndex)
 
 	resp, err := registry.Client.Do(req)
 	if resp != nil {
