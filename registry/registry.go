@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -127,7 +127,7 @@ func (r *Registry) Ping() error {
 
 	// We read the results a little early so that, if the body exists,
 	// we can print it out in the response for easier debuggability.
-	results, readErr := ioutil.ReadAll(resp.Body)
+	results, readErr := io.ReadAll(resp.Body)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		errorBuilder := strings.Builder{}
