@@ -30,6 +30,35 @@ func (registry *Registry) SignedManifest(repository, reference string) (*manifes
 	return registry.v1Manifest(repository, reference, manifestV1.MediaTypeSignedManifest)
 }
 
+func (registry *Registry) ManifestList(repository, reference string) (*manifestlist.DeserializedManifestList, error) {
+	url := registry.url("/v2/%s/manifests/%s", repository, reference)
+	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Accept", manifestlist.MediaTypeManifestList)
+	resp, err := registry.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	deserialized := &manifestlist.DeserializedManifestList{}
+	err = deserialized.UnmarshalJSON(body)
+	if err != nil {
+		return nil, err
+	}
+	return deserialized, nil
+}
+
 func (registry *Registry) v1Manifest(repository, reference string, mediaType string) (*manifestV1.SignedManifest, error) {
 	url := registry.url("/v2/%s/manifests/%s", repository, reference)
 	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
@@ -58,35 +87,6 @@ func (registry *Registry) v1Manifest(repository, reference string, mediaType str
 	}
 
 	return signedManifest, nil
-}
-
-func (registry *Registry) ManifestList(repository, reference string) (*manifestlist.DeserializedManifestList, error) {
-	url := registry.url("/v2/%s/manifests/%s", repository, reference)
-	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Accept", manifestlist.MediaTypeManifestList)
-	resp, err := registry.Client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	deserialized := &manifestlist.DeserializedManifestList{}
-	err = deserialized.UnmarshalJSON(body)
-	if err != nil {
-		return nil, err
-	}
-	return deserialized, nil
 }
 
 func (registry *Registry) ManifestV2(repository, reference string) (*manifestV2.DeserializedManifest, error) {
