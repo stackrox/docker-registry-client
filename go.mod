@@ -3,7 +3,7 @@ module github.com/heroku/docker-registry-client
 go 1.19
 
 require (
-	github.com/docker/distribution v2.8.1+incompatible
+	github.com/docker/distribution v2.8.2+incompatible
 	github.com/opencontainers/go-digest v1.0.0
 )
 
