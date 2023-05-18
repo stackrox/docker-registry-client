@@ -7,4 +7,4 @@ updates:
       day: 'wednesday'
     open-pull-requests-limit: 3
     reviewers:
-      - 'stackrox/scanner-dep-updaters'
+      - 'stackrox/scanner'
