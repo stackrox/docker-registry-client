@@ -17,7 +17,10 @@ func (registry *Registry) Repositories() ([]string, error) {
 		// Sometimes only the path is returned instead of the full URL.
 		// If that's the case, then prepend the scheme and host to the path.
 		if strings.HasPrefix(url, "/") {
-			url = registry.url(url)
+			// Do not use registry.url(), as there may be a % which will not work well with
+			// fmt.Sprintf.
+			// Instead, just use regular string concatenation.
+			url = registry.URL + url
 		}
 		switch err {
 		case ErrNoMorePages:
