@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/docker/distribution v2.8.3+incompatible
-	github.com/google/go-cmp v0.5.9
+	github.com/google/go-cmp v0.6.0
 	github.com/opencontainers/go-digest v1.0.0
 )
 
