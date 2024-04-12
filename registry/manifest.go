@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/manifestlist"
 	"github.com/docker/distribution/manifest/ocischema"
 	"github.com/docker/distribution/manifest/schema1"
@@ -223,22 +224,22 @@ func (registry *Registry) DeleteManifest(repository string, digest digest.Digest
 	return nil
 }
 
-func (registry *Registry) PutManifest(repository, reference string, signedManifest *schema1.SignedManifest) error {
+func (registry *Registry) PutManifest(repository, reference string, manifest distribution.Manifest) error {
 	url := registry.url("/v2/%s/manifests/%s", repository, reference)
 	registry.Logf("registry.manifest.put url=%s repository=%s reference=%s", url, repository, reference)
 
-	body, err := signedManifest.MarshalJSON()
+	mediaType, payload, err := manifest.Payload()
 	if err != nil {
 		return err
 	}
 
-	buffer := bytes.NewBuffer(body)
+	buffer := bytes.NewBuffer(payload)
 	req, err := http.NewRequest("PUT", url, buffer)
 	if err != nil {
 		return err
 	}
 
-	req.Header.Set("Content-Type", schema1.MediaTypeManifest)
+	req.Header.Set("Content-Type", mediaType)
 	resp, err := registry.Client.Do(req)
 	if resp != nil {
 		defer resp.Body.Close()
