@@ -49,6 +49,9 @@ func (t *TokenTransport) authAndRetry(authService *authService, req *http.Reques
 		return authResp, err
 	}
 
+	if authResp != nil && authResp.Body != nil {
+		_ = authResp.Body.Close()
+	}
 	retryResp, err := t.retry(req, token)
 	return retryResp, err
 }
@@ -67,11 +70,11 @@ func (t *TokenTransport) auth(authService *authService) (string, *http.Response,
 	if err != nil {
 		return "", nil, err
 	}
-	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return "", response, err
+		return "", response, nil
 	}
+	defer response.Body.Close()
 
 	var authToken authToken
 	decoder := json.NewDecoder(response.Body)
