@@ -72,7 +72,7 @@ func (t *TokenTransport) auth(authService *authService) (string, *http.Response,
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return "", response, err
+		return "", response, nil
 	}
 	defer response.Body.Close()
 
@@ -123,12 +123,15 @@ func (authService *authService) Request(username, password string) (*http.Reques
 	url.RawQuery = q.Encode()
 
 	request, err := http.NewRequest("GET", url.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	if username != "" || password != "" {
 		request.SetBasicAuth(username, password)
 	}
 
-	return request, err
+	return request, nil
 }
 
 func isTokenDemand(resp *http.Response) *authService {
