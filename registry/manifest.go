@@ -91,32 +91,45 @@ func (registry *Registry) v1Manifest(repository, reference string, mediaType str
 }
 
 func (registry *Registry) ManifestV2(repository, reference string) (*schema2.DeserializedManifest, error) {
+	deserialized, _, err := registry.ManifestV2WithDigest(repository, reference)
+	return deserialized, err
+}
+
+// ManifestV2WithDigest extends ManifestV2 to return the digest found in the Docker-Content-Digest header.
+// If the header does not exist or is invalid an empty digest is returned (an error is not returned
+// so that existing clients are not affected by new, potentially unrelated, errors).
+func (registry *Registry) ManifestV2WithDigest(repository, reference string) (*schema2.DeserializedManifest, digest.Digest, error) {
 	url := registry.url("/v2/%s/manifests/%s", repository, reference)
 	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	req.Header.Set("Accept", schema2.MediaTypeManifest)
 	resp, err := registry.Client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	deserialized := &schema2.DeserializedManifest{}
 	err = deserialized.UnmarshalJSON(body)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return deserialized, nil
+
+	digest, err := digest.Parse(resp.Header.Get("Docker-Content-Digest"))
+	if err != nil {
+		digest = ""
+	}
+	return deserialized, digest, nil
 }
 
 func (registry *Registry) ImageIndex(repository, reference string) (*manifestlist.DeserializedManifestList, error) {
@@ -149,32 +162,46 @@ func (registry *Registry) ImageIndex(repository, reference string) (*manifestlis
 }
 
 func (registry *Registry) ManifestOCI(repository, reference string) (*ocischema.DeserializedManifest, error) {
+	deserialized, _, err := registry.ManifestOCIWithDigest(repository, reference)
+	return deserialized, err
+}
+
+// ManifestOCIWithDigest extends ManifestOCI to return the digest found in the Docker-Content-Digest header.
+// If the header does not exist or is invalid an empty digest is returned (an error is not returned
+// so that existing clients are not affected by new, potentially unrelated, errors).
+func (registry *Registry) ManifestOCIWithDigest(repository, reference string) (*ocischema.DeserializedManifest, digest.Digest, error) {
 	url := registry.url("/v2/%s/manifests/%s", repository, reference)
 	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	req.Header.Set("Accept", MediaTypeImageManifest)
 	resp, err := registry.Client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	deserialized := &ocischema.DeserializedManifest{}
 	err = deserialized.UnmarshalJSON(body)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return deserialized, nil
+
+	digest, err := digest.Parse(resp.Header.Get("Docker-Content-Digest"))
+	if err != nil {
+		digest = ""
+	}
+
+	return deserialized, digest, nil
 }
 
 func (registry *Registry) ManifestDigest(repository, reference string) (digest.Digest, string, error) {
