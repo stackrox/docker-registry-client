@@ -2,7 +2,6 @@ package registry
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -15,7 +14,7 @@ var (
 	fakeDigest = digest.FromString("sha256:0000000000000000000000000000000000000000000000000000000000000000")
 )
 
-func NewHandlerFunc(mediaType string) func(w http.ResponseWriter, r *http.Request) {
+func newHandlerFunc(mediaType string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "emptyheader") {
 			w.Header().Add("Docker-Content-Digest", "")
@@ -29,14 +28,14 @@ func NewHandlerFunc(mediaType string) func(w http.ResponseWriter, r *http.Reques
 			w.Header().Add("Docker-Content-Digest", string(fakeDigest))
 		}
 
-		io.WriteString(w, fmt.Sprintf(`{"mediaType":"%s"}`, mediaType))
+		w.Write([]byte(fmt.Sprintf(`{"mediaType":"%s"}`, mediaType)))
 	})
 }
 
 func TestManifestV2WithDigest(t *testing.T) {
 	mediaType := "application/vnd.docker.distribution.manifest.v2+json"
-	s := httptest.NewServer(http.HandlerFunc(NewHandlerFunc(mediaType)))
-	defer s.Close()
+	s := httptest.NewServer(newHandlerFunc(mediaType))
+	t.Cleanup(s.Close)
 
 	r, err := NewInsecure(s.URL, "", "")
 	if err != nil {
@@ -78,8 +77,8 @@ func TestManifestV2WithDigest(t *testing.T) {
 
 func TestManifestOCIWithDigest(t *testing.T) {
 	mediaType := "application/vnd.oci.image.manifest.v1+json"
-	s := httptest.NewServer(http.HandlerFunc(NewHandlerFunc(mediaType)))
-	defer s.Close()
+	s := httptest.NewServer(newHandlerFunc(mediaType))
+	t.Cleanup(s.Close)
 
 	r, err := NewInsecure(s.URL, "", "")
 	if err != nil {
