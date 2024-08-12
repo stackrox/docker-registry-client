@@ -2,6 +2,7 @@ package registry
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -234,6 +235,10 @@ func (registry *Registry) ManifestDigest(repository, reference string) (digest.D
 }
 
 func (registry *Registry) DeleteManifest(repository string, digest digest.Digest) error {
+	if err := digest.Validate(); err != nil {
+		return fmt.Errorf("invalid layer digest %v: %w", digest, err)
+	}
+
 	url := registry.url("/v2/%s/manifests/%s", repository, digest)
 	registry.Logf("registry.manifest.delete url=%s repository=%s reference=%s", url, repository, digest)
 

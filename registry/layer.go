@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -10,6 +11,10 @@ import (
 )
 
 func (registry *Registry) DownloadLayer(repository string, digest digest.Digest) (io.ReadCloser, error) {
+	if err := digest.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid layer digest %v: %w", digest, err)
+	}
+
 	url := registry.url("/v2/%s/blobs/%s", repository, digest)
 	registry.Logf("registry.layer.download url=%s repository=%s digest=%s", url, repository, digest)
 
@@ -22,6 +27,10 @@ func (registry *Registry) DownloadLayer(repository string, digest digest.Digest)
 }
 
 func (registry *Registry) UploadLayer(repository string, digest digest.Digest, content io.Reader) error {
+	if err := digest.Validate(); err != nil {
+		return fmt.Errorf("invalid layer digest %v: %w", digest, err)
+	}
+
 	uploadUrl, err := registry.initiateUpload(repository)
 	if err != nil {
 		return err
@@ -43,6 +52,10 @@ func (registry *Registry) UploadLayer(repository string, digest digest.Digest, c
 }
 
 func (registry *Registry) HasLayer(repository string, digest digest.Digest) (bool, error) {
+	if err := digest.Validate(); err != nil {
+		return false, fmt.Errorf("invalid layer digest %v: %w", digest, err)
+	}
+
 	checkUrl := registry.url("/v2/%s/blobs/%s", repository, digest)
 	registry.Logf("registry.layer.check url=%s repository=%s digest=%s", checkUrl, repository, digest)
 
@@ -70,6 +83,10 @@ func (registry *Registry) HasLayer(repository string, digest digest.Digest) (boo
 }
 
 func (registry *Registry) LayerMetadata(repository string, digest digest.Digest) (distribution.Descriptor, error) {
+	if err := digest.Validate(); err != nil {
+		return distribution.Descriptor{}, fmt.Errorf("invalid layer digest %v: %w", digest, err)
+	}
+
 	checkUrl := registry.url("/v2/%s/blobs/%s", repository, digest)
 	registry.Logf("registry.layer.check url=%s repository=%s digest=%s", checkUrl, repository, digest)
 
