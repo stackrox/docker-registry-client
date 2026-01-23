@@ -3,6 +3,7 @@ package registry
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"sync"
@@ -72,7 +73,16 @@ func (t *TokenTransport) auth(authService *authService) (string, *http.Response,
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return "", response, nil
+		defer response.Body.Close()
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			return "", nil, fmt.Errorf("auth: failed to read auth response body (status=%v, err=%q)", response.StatusCode, err)
+		}
+
+		return "", nil, &HttpStatusError{
+			Response: response,
+			Body:     body,
+		}
 	}
 	defer response.Body.Close()
 
