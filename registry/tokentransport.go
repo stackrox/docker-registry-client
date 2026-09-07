@@ -18,6 +18,11 @@ type TokenTransport struct {
 }
 
 func (t *TokenTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.Header.Get("Authorization") == "" {
+		if token := t.GetToken(); token != "" {
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+		}
+	}
 	resp, err := t.Transport.RoundTrip(req)
 	if err != nil {
 		return resp, err
@@ -72,7 +77,7 @@ func (t *TokenTransport) auth(authService *authService) (string, *http.Response,
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return "", response, nil
+		return "", response, fmt.Errorf("token auth attempt for %s responded with status %d", authReq.URL.Redacted(), response.StatusCode)
 	}
 	defer response.Body.Close()
 
