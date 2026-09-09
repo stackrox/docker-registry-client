@@ -77,7 +77,7 @@ func (t *TokenTransport) auth(authService *authService) (string, *http.Response,
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return "", response, fmt.Errorf("token auth attempt for %s responded with status %d", authReq.URL.Redacted(), response.StatusCode)
+		return "", response, nil
 	}
 	defer response.Body.Close()
 

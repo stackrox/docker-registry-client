@@ -97,7 +97,7 @@ func WrapTransport(transport http.RoundTripper, url, username, password string) 
 
 func newWithWrapTransport(registryUrl, username, password string, transport http.RoundTripper, logf LogfCallback) (*Registry, error) {
 	url := strings.TrimSuffix(registryUrl, "/")
-	wrappedTransport := WrapTransportWithDetection(transport, url, username, password)
+	wrappedTransport := WrapTransport(transport, url, username, password)
 	return NewFromTransport(registryUrl, wrappedTransport, logf)
 }
 
