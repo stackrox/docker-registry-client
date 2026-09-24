@@ -18,11 +18,6 @@ type TokenTransport struct {
 }
 
 func (t *TokenTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if req.Header.Get("Authorization") == "" {
-		if token := t.GetToken(); token != "" {
-			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-		}
-	}
 	resp, err := t.Transport.RoundTrip(req)
 	if err != nil {
 		return resp, err

@@ -1,6 +1,6 @@
 module github.com/stackrox/docker-registry-client
 
-go 1.19
+go 1.21
 
 require (
 	github.com/docker/distribution v2.8.3+incompatible

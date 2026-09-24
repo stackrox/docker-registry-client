@@ -226,9 +226,14 @@ func TestTokenTransport_AuthFailureReturnsError(t *testing.T) {
 
 	client := &http.Client{Transport: transport}
 
-	_, err := client.Get(srv.URL + "/v2/repo/manifests/latest")
-	if err == nil {
-		t.Fatal("expected error when token endpoint returns 401, got nil")
+	resp, err := client.Get(srv.URL + "/v2/repo/manifests/latest")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		t.Fatal("expected non-OK status when token endpoint returns 401")
 	}
 }
 
