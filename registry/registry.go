@@ -72,6 +72,10 @@ func NewInsecure(registryUrl, username, password string) (*Registry, error) {
  * transport stack necessary to authenticate to the Docker registry API. This
  * adds in support for OAuth bearer tokens and HTTP Basic auth, and sets up
  * error handling this library relies on.
+ *
+ * This always includes both basic and token auth layers. For a minimal
+ * transport that only includes the auth layer the registry actually requires,
+ * use WrapTransportWithDetection.
  */
 func WrapTransport(transport http.RoundTripper, url, username, password string) Transport {
 	tokenTransport := &TokenTransport{
